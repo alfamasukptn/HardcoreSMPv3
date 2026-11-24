@@ -1,0 +1,256 @@
+# ============================================================
+#  HardcoreSMP - config.yml
+#  Cara termudah: ketik /hcs (atau /hcs gui) di game untuk membuka GUI setting.
+#  Atau ubah file ini lalu ketik /hcs reload (tanpa restart).
+#  Teks pakai format MiniMessage, contoh: <red>teks merah</red>
+#  Semua "chance" dalam PERSEN (0 - 100). Boleh desimal, mis. 12.5
+# ============================================================
+
+# Seberapa sering (tick, 20 tick = 1 detik) plugin mengecek mace limit & item limit.
+check-interval-ticks: 40
+
+# ------------------------------------------------------------
+# 0) EVENTS - event berwaktu + bossbar hitung mundur
+#    Mulai manual: /hcs event start <pvp|totem|heavycore|mobdrops> [menit]
+#    Hentikan    : /hcs event stop <id|all>      Lihat: /hcs event list
+#    Atau lewat GUI: /hcs -> Events
+#
+#    timed: true  -> fitur memakai "drop-chance-percent" HANYA saat event aktif,
+#                    di luar event memakai "base-drop-chance-percent"
+#                    (mob-drops hanya jalan saat event aktif)
+#    timed: false -> fitur selalu aktif (memakai drop-chance-percent), tanpa event
+#    auto-interval-minutes: event otomatis mulai tiap N menit setelah event
+#                    sebelumnya selesai (0 = hanya manual)
+#    Placeholder: <time> sisa waktu, <event> nama event, <minutes> durasi (di pesan start)
+#    bossbar color : PINK, BLUE, RED, GREEN, YELLOW, PURPLE, WHITE
+#    bossbar style : PROGRESS, NOTCHED_6, NOTCHED_10, NOTCHED_12, NOTCHED_20
+# ------------------------------------------------------------
+events:
+  pvp:
+    timed: true
+    duration-minutes: 30
+    auto-interval-minutes: 0
+    control-world-pvp: false     # true = PvP antar player hanya bisa saat PvP Event
+    bossbar:
+      enabled: true
+      title: "<red><bold>PVP EVENT</bold> <gray>| <white><time>"
+      color: RED
+      style: PROGRESS
+    messages:
+      start: "<red><bold>PVP EVENT</bold> <gray>dimulai selama <white><minutes> menit<gray>! Kepala korban PvP akan drop."
+      end: "<red><bold>PVP EVENT</bold> <gray>telah berakhir."
+  totem:
+    timed: true
+    duration-minutes: 30
+    auto-interval-minutes: 0
+    bossbar:
+      enabled: true
+      title: "<yellow><bold>TOTEM EVENT</bold> <gray>| <white><time>"
+      color: YELLOW
+      style: PROGRESS
+    messages:
+      start: "<yellow><bold>TOTEM EVENT</bold> <gray>dimulai selama <white><minutes> menit<gray>! Drop rate totem naik."
+      end: "<yellow><bold>TOTEM EVENT</bold> <gray>telah berakhir."
+  heavycore:
+    timed: true
+    duration-minutes: 30
+    auto-interval-minutes: 0
+    bossbar:
+      enabled: true
+      title: "<aqua><bold>HEAVY CORE EVENT</bold> <gray>| <white><time>"
+      color: BLUE
+      style: PROGRESS
+    messages:
+      start: "<aqua><bold>HEAVY CORE EVENT</bold> <gray>dimulai selama <white><minutes> menit<gray>! Drop rate Heavy Core naik."
+      end: "<aqua><bold>HEAVY CORE EVENT</bold> <gray>telah berakhir."
+  mobdrops:
+    timed: true
+    duration-minutes: 30
+    auto-interval-minutes: 0
+    bossbar:
+      enabled: true
+      title: "<green><bold>MOB DROP EVENT</bold> <gray>| <white><time>"
+      color: GREEN
+      style: PROGRESS
+    messages:
+      start: "<green><bold>MOB DROP EVENT</bold> <gray>dimulai selama <white><minutes> menit<gray>!"
+      end: "<green><bold>MOB DROP EVENT</bold> <gray>telah berakhir."
+
+# ------------------------------------------------------------
+# 1) PVP HEAD - korban PvP drop kepala
+# ------------------------------------------------------------
+pvp-head:
+  enabled: true
+  drop-chance-percent: 100.0        # drop rate SAAT PvP Event aktif
+  base-drop-chance-percent: 0.0     # drop rate DI LUAR event (hanya dipakai jika events.pvp.timed: true)
+  give-directly-to-killer: false     # true = langsung masuk inventory killer
+  name: "<red>Kepala <victim>"
+  lore:
+    - "<gray>Dibunuh oleh <white><killer>"
+    - "<dark_gray>Bisa di-craft jadi Enchanted Golden Apple"
+  # Kompatibilitas dengan plugin death animation (mis. BZL Death Animation) yang menunda /
+  # membatalkan kematian sehingga PlayerDeathEvent tidak muncul atau getKiller() kosong.
+  compat:
+    killer-memory-seconds: 15   # plugin mengingat penyerang terakhir sekian detik (dipakai jika getKiller() kosong)
+    lethal-hit-mode: SMART      # OFF = hanya PlayerDeathEvent
+                                # SMART = pukulan mematikan yang "dicegat" plugin lain dianggap kematian
+                                #         (deteksi: HP berubah / pose mati / spectator / invulnerable)
+                                # ALWAYS = SEMUA pukulan mematikan dianggap kematian (hati-hati: area protection)
+    verify-delay-ticks: 5       # jeda sebelum verifikasi (naikkan jika animasi plugin lambat mulai)
+    dedupe-seconds: 60          # cegah head ganda untuk korban yang sama
+    debug: false                # true = log detail ke console untuk membantu diagnosa
+  anti-farm:
+    block-same-ip: true                 # tidak drop jika killer & korban satu IP
+    same-victim-cooldown-minutes: 30    # killer yang sama bunuh korban yang sama = tidak drop lagi (0 = mati)
+
+# Craft kepala -> Enchanted Golden Apple
+head-apple:
+  enabled: true
+  require-pvp-head: true     # true = hanya kepala hasil PvP (bukan head dari creative/command)
+  amount: 1
+  type: shaped               # shaped / shapeless
+  shape:
+    - "GGG"
+    - "GHG"
+    - "GGG"
+  ingredients:               # hindari huruf Y dan N sebagai simbol (dianggap boolean oleh YAML)
+    G: GOLD_BLOCK
+    H: PLAYER_HEAD
+
+# ------------------------------------------------------------
+# 2) TOTEM - drop rate Totem of Undying dari Evoker
+#    (vanilla = 100%). Mau drop dari mob lain? pakai mob-drops di bawah.
+# ------------------------------------------------------------
+totem:
+  enabled: true
+  evoker-drop-chance-percent: 25.0   # drop rate SAAT Totem Event aktif
+  base-drop-chance-percent: 10.0     # drop rate DI LUAR event (jika events.totem.timed: true)
+
+# ------------------------------------------------------------
+# 3) HEAVY CORE - drop rate Heavy Core dari Ominous Vault
+#    (Heavy Core hanya keluar dari Ominous Vault di Trial Chamber)
+#    Chance gagal = item tidak keluar dari vault.
+# ------------------------------------------------------------
+heavy-core:
+  enabled: true
+  vault-drop-chance-percent: 20.0    # drop rate SAAT Heavy Core Event aktif
+  base-drop-chance-percent: 5.0      # drop rate DI LUAR event (jika events.heavycore.timed: true)
+
+# ------------------------------------------------------------
+# 4) MOB DROPS - drop tambahan custom dari mob apa saja
+#    entity: https://jd.papermc.io/paper/1.21.11/org/bukkit/entity/EntityType.html
+#    item  : nama Material, mis. HEAVY_CORE, TOTEM_OF_UNDYING, DIAMOND
+# ------------------------------------------------------------
+mob-drops:
+  enabled: false
+  entries:
+    breeze_heavy_core:
+      entity: BREEZE
+      item: HEAVY_CORE
+      chance-percent: 5.0
+      min: 1
+      max: 1
+    warden_netherite:
+      entity: WARDEN
+      item: NETHERITE_INGOT
+      chance-percent: 50.0
+      min: 1
+      max: 2
+
+# ------------------------------------------------------------
+# 5) EZ CRAFT - bikin recipe sendiri
+#    type: shaped  -> pakai shape + ingredients (huruf = bahan)
+#    type: shapeless -> pakai ingredients berupa list ("MATERIAL" atau "MATERIAL:jumlah")
+#    Nama recipe (saddle, name_tag, ...) bebas, ganti/tambah sesukamu.
+# ------------------------------------------------------------
+ez-craft:
+  enabled: true
+  # Hapus recipe vanilla untuk item tertentu (mis. TNT_MINECART, TNT).
+  # Catatan: menghapus dari list ini TIDAK mengembalikan recipe sampai server restart.
+  remove-vanilla-recipes: []
+  recipes:
+    saddle:
+      enabled: true
+      type: shaped
+      result: SADDLE
+      amount: 1
+      shape:
+        - "LLL"
+        - "LIL"
+        - "I I"
+      ingredients:
+        L: LEATHER
+        I: IRON_INGOT
+    name_tag:
+      enabled: true
+      type: shapeless
+      result: NAME_TAG
+      amount: 1
+      ingredients:
+        - PAPER
+        - STRING
+        - INK_SAC
+    contoh_totem:            # contoh resep totem (DIMATIKAN)
+      enabled: false
+      type: shaped
+      result: TOTEM_OF_UNDYING
+      amount: 1
+      name: "<gold>Totem Craft"          # opsional
+      lore:                              # opsional
+        - "<gray>Dibuat manual"
+      shape:
+        - "EEE"
+        - "EGE"
+        - "EEE"
+      ingredients:
+        E: EMERALD_BLOCK
+        G: GOLD_BLOCK
+
+# ------------------------------------------------------------
+# 6) MACE LIMIT - batasi berapa PLAYER yang boleh memegang mace
+#    Player "memegang mace" kalau ada mace di inventory (termasuk di dalam shulker box).
+#    Kalau slot habis: tidak bisa craft / pickup, dan mace yang didapat lewat cara lain disita.
+# ------------------------------------------------------------
+mace:
+  enabled: true
+  max-holders: 3            # -1 = tanpa batas, 0 = tidak ada yang boleh
+  allow-crafting: true      # false = mace tidak bisa di-craft sama sekali
+  count-ender-chest: true   # mace di ender chest tetap dihitung memakai slot
+
+# ------------------------------------------------------------
+# 7) ITEM LIMITS - batas jumlah item per player di inventory
+# ------------------------------------------------------------
+item-limits:
+  enabled: false
+  limits:
+    TOTEM_OF_UNDYING: 4
+    ENCHANTED_GOLDEN_APPLE: 8
+    END_CRYSTAL: 16
+    RESPAWN_ANCHOR: 4
+
+# ------------------------------------------------------------
+# 8) COMBAT LOG - logout saat bertarung = mati (item drop)
+# ------------------------------------------------------------
+combat-log:
+  enabled: true
+  duration-seconds: 20
+
+# ------------------------------------------------------------
+# PESAN (MiniMessage)
+# ------------------------------------------------------------
+messages:
+  prefix: "<dark_gray>[<gold>HardcoreSMP<dark_gray>] <gray>"
+  permanent: "permanen"
+  no-permission: "<red>Kamu tidak punya izin."
+  reloaded: "<green>Config & recipe berhasil di-reload."
+  mace-limit-reached: "<red>Slot mace penuh (<count>/<max>). Kamu tidak bisa memegang mace."
+  mace-confiscated: "<red>Mace disita karena slot pemegang mace sudah penuh (<max>)."
+  mace-crafting-disabled: "<red>Crafting mace dinonaktifkan di server ini."
+  item-limit-reached: "<red>Batas <item> di inventory kamu adalah <limit>."
+  item-limit-dropped: "<red>Kelebihan <item> dijatuhkan (batas <limit>)."
+  head-needs-pvp: "<red>Hanya kepala hasil PvP yang bisa dipakai."
+  combat-log-killed: "<red><player> logout saat bertarung dan terbunuh!"
+  pvp-disabled: "<red>PvP hanya bisa dilakukan saat PvP Event berlangsung."
+  mace-removed: "<green><player> dihapus dari daftar pemegang mace."
+  mace-cleared: "<green>Daftar pemegang mace dikosongkan."
+  mace-list-header: "<yellow>Pemegang mace (<count>/<max>):"

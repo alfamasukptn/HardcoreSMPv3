@@ -1,0 +1,18 @@
+name: HardcoreSMP
+version: ${project.version}
+main: com.hardcoresmp.HardcoreSMP
+api-version: '1.21'
+author: ${plugin.author}
+description: Hardcore SMP toolkit dengan GUI setting - PvP head, totem/heavy core drop rate, mace limit, EZ craft, dll.
+commands:
+  hardcoresmp:
+    aliases: [hcs]
+    description: Perintah admin HardcoreSMP
+    usage: /<command> [gui|reload|mace]
+permissions:
+  hardcoresmp.admin:
+    description: Akses semua perintah /hcs
+    default: op
+  hardcoresmp.bypass:
+    description: Kebal dari mace limit, item limit, combat log
+    default: false
